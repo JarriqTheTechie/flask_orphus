@@ -266,10 +266,7 @@ class String:
         Convert the string to kebab case.
         :return:
         """
-        self.string = '-'.join(
-            re.sub(r"(\s|_|-)+", " ",
-                   re.sub(r"[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+",
-                          lambda mo: ' ' + mo.group(0).lower(), self.string)).split())
+        self.string = self.string.replace(' ', '-').replace('_', '-')
         return self
 
     def lcfirst(self):
