@@ -1,0 +1,8 @@
+flask
+fluentpipelines
+flask_orphus
+masonite-orm
+icecream
+python-dotenv
+requests
+bs4
