@@ -108,6 +108,12 @@ class Request(object, metaclass=FastInstantiateMeta):
         return String.of(cls.input(string))
 
     @classmethod
+    def view_args(cls, key=None, default=None):
+        if not key:
+            return request.view_args
+        return request.view_args.get(key, default)    
+
+    @classmethod
     def all(cls, arrays: dict | None = None) -> dict:
         if arrays is None:
             arrays = []
