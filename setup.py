@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="flask_orphus",
-    version="0.1.2",
+    version="0.1.3",
     author="Jarriq Rolle",
     author_email="jrolle@bnbbahamas.com",
     description="A package that extends the flask webframework in a very opinionated way.",
