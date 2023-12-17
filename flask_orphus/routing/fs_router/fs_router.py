@@ -1,12 +1,11 @@
 import importlib
 import inspect
+import re
 import secrets
 from functools import wraps, partial
 from pathlib import Path
 from pydoc import locate
 from typing import Any
-
-from jinja2 import FileSystemLoader
 
 from flask_orphus.helpers import String
 from flask_orphus.routing.micro import micro_render
@@ -25,9 +24,10 @@ def to_class(path: str) -> Any:
         class_instance = None
     return class_instance or None
 
+
 def path_processor(path):
     path = path.replace("pages.", "/").replace(".", "/").replace("index/", "").replace(
-                "[", "<").replace("]", ">").replace("/index", "").replace("~", "/")
+        "[", "<").replace("]", ">").replace("/index", "").replace("~", "/")
 
     ["/" if path.rstrip(f"{path.split('.')[-1]}").rstrip("/") == "" else path.rstrip(
         f"{path.split('.')[-1]}").rstrip("/")][0].rstrip(".").replace("/.", "/")
@@ -41,6 +41,20 @@ def get_endpoint_func_post(my_module_str):
     for fn in my_module_functions:
         if hasattr(fn, "__is_endpoint__"):
             return f"{my_module_str}.{fn.__name__}"
+
+
+def get_endpoint_from_get(file_path: str):
+    with open(file_path, "r") as f:
+        sample = f.read()
+    pattern = r"endpoint\s*=\s*(.+?)(?=\n|$)"
+
+    match = re.search(pattern, sample)
+
+    if match:
+        endpoint_name = match.group(1).strip()
+        return endpoint_name.strip('"')
+    else:
+        return secrets.token_urlsafe(4)
 
 
 class FSRouter:
@@ -70,7 +84,6 @@ class FSRouter:
                         path = str(String.of(path).kebab())
                         path = f"/{path}"
 
-
             match route.get("method").upper():
                 case "POST" | "DELETE" | "PATCH":
                     file_path = route.get("file_path").replace("\\", ".").rstrip(".py")
@@ -90,8 +103,26 @@ class FSRouter:
                     app.add_url_rule(
                         path,
                         **dict(
-                            view_func=partial(micro_render, app, page),
-                            endpoint=route.get('endpoint'),
+                            view_func=[
+                                partial(micro_render, app, page)
+                                if route.get("file_path").endswith(".html")
+                                else
+                                to_class(
+                                    get_endpoint_func_post(
+                                        route.get("file_path").replace("\\", ".").rstrip(".py")
+                                    )
+                                )
+                            ][0],
+                            endpoint=[
+                                get_endpoint_from_get(route.get("file_path"))
+                                if route.get("file_path").endswith(".html")
+                                else
+                                to_class(
+                                    get_endpoint_func_post(
+                                        route.get("file_path").replace("\\", ".").rstrip(".py")
+                                    )
+                                ).__endpoint_name__
+                            ][0],
                             methods=[route.get('method')],
                             websocket=route.get("ws")
                         )
