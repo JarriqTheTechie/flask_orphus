@@ -50,7 +50,7 @@ class Session(object, metaclass=FastInstantiateMeta):
     def flush(self) -> None:
         self.session.clear()
 
-    def forget(self, key: str|list) -> None:
+    def forget(self, key: str | list) -> None:
         if type(key) == str:
             self.session.pop(key, None)
         elif type(key) == list:
@@ -111,7 +111,7 @@ class Request(object, metaclass=FastInstantiateMeta):
     def view_args(cls, key=None, default=None):
         if not key:
             return request.view_args
-        return request.view_args.get(key, default)    
+        return request.view_args.get(key, default)
 
     @classmethod
     def all(cls, arrays: dict | None = None) -> dict:
@@ -297,7 +297,8 @@ class Request(object, metaclass=FastInstantiateMeta):
         return cls.file(key).__dict__['filename']
 
     @classmethod
-    def upload_multiple(cls, key: str, keep_name: bool = False):
+    def upload_multiple(cls, key: str, prefix: str = "", suffix: str = "", prefix_separator: str = "",
+                        suffix_separator: str = "", keep_name: bool = False):
         saved_file_path_list: list = []
         files: list = request.files.getlist(f'{key}')
         for file in files:
@@ -306,8 +307,10 @@ class Request(object, metaclass=FastInstantiateMeta):
                 file.filename = str(uuid.uuid4()) + "." + extension
             with file.stream as f:
                 file_guts: bytes = f.read()
-            with open(r'UPLOADS\\' + f'{file.filename}', 'wb') as output:
+            with open(r'UPLOADS\\' + f'{prefix}{prefix_separator}{str(file.filename).rstrip(extension).rstrip(".")}{suffix_separator}{suffix}.{extension}',
+                      'wb') as output:
                 output.write(file_guts)
+                file.filename = f'{prefix}{prefix_separator}{str(file.filename).rstrip(extension).rstrip(".")}{suffix_separator}{suffix}.{extension}'
             saved_file_path_list.append(file.filename)
         return saved_file_path_list
 
@@ -331,7 +334,7 @@ class Request(object, metaclass=FastInstantiateMeta):
 
 class Redirect(object, metaclass=FastInstantiateMeta):
     @classmethod
-    def to(self, path_or_route: str|Path|None = None):
+    def to(self, path_or_route: str | Path | None = None):
         """
         Instantiate a new String object.
         :param string:
@@ -375,4 +378,3 @@ class Redirect(object, metaclass=FastInstantiateMeta):
     def back_with_input(self):
         Request.session().flash("old_", Request.all())
         return self.back()
-

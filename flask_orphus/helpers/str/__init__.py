@@ -949,6 +949,9 @@ class String:
             self.string = callback(self.string)
         return self
 
+    def to_string(self):
+        return str(self.string)
+
     def __str__(self):
         """
         Return the string.
