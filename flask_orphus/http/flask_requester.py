@@ -350,7 +350,7 @@ class Redirect(object, metaclass=FastInstantiateMeta):
         if "/" in self.path_or_route:
             return redirect(self.path_or_route)
         else:
-            return redirect(url_for(self.path_or_route))
+            return redirect(url_for(self.path_or_route, **kwargs))
 
     def away(self):
         if "https" in self.path_or_route or "http" in self.path_or_route:
