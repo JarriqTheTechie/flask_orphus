@@ -949,6 +949,13 @@ class String:
             self.string = callback(self.string)
         return self
 
+    def acronym(self):
+        """
+        Convert a string to an acronym.
+        :return:
+        """
+        self.string = "".join([word[0] for word in self.string.split()])
+        return self
     def to_string(self):
         return str(self.string)
 
