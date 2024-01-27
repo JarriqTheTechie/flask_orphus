@@ -66,7 +66,10 @@ class ns:
 
     def __setitem__(self, key, value):
         if self.obj is not None:
-            self.obj[key] = value
+            if not isinstance(self.obj, (dict,)):
+                setattr(self.obj, key, value)
+            else:
+                self.obj[key] = value
 
     def __call__(self, *args, **kwargs) -> T:
         if self.obj is None:
