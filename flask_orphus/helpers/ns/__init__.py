@@ -45,6 +45,29 @@ class ns:
             attr = getattr(self.obj, name, None)
             return ns(attr) if attr is not None else ns(None)
 
+    def __setattr__(self, name, value):
+        if name != "obj":
+            if hasattr(self, "obj"):
+                if isinstance(self.obj, (dict,)):
+                    self.obj[name] = value
+                else:
+                    setattr(self.obj, name, value)
+            else:
+                super().__setattr__(name, value)
+        else:
+            super().__setattr__(name, value)
+
+    def __getitem__(self, key):
+        if self.obj is None:
+            return ns(None)
+        else:
+            attr = self.obj[key]
+            return ns(attr) if attr is not None else ns(None)
+
+    def __setitem__(self, key, value):
+        if self.obj is not None:
+            self.obj[key] = value
+
     def __call__(self, *args, **kwargs) -> T:
         if self.obj is None:
             return ns(None)
