@@ -34,8 +34,11 @@ def micro_render(app, bang_template: Path, **context: dict[Any, Any]) -> str:
     fire_starter.fire("template_rendering_began", message=f"Began rendering template [{bang_template}]")
     with open(bang_template, 'r') as bang_f:
         template: str = bang_f.read()
-        bang_pattern: str = r'---\n(.*?)\n---'
-        bang_result: Any = re.findall(bang_pattern, template, re.DOTALL)
+        mdx_bang_pattern: str = r'---\n(.*?)\n---'
+        py_bang_pattern: str = r'<py>\n(.*?)\n</py>'
+        bang_result: Any = re.findall(mdx_bang_pattern, template, re.DOTALL)
+        if len(bang_result) == 0:
+            bang_result: Any = re.findall(py_bang_pattern, template, re.DOTALL)
     bang_vals: dict[Any, Any] = {}
     for bang_script in bang_result:
         try:
