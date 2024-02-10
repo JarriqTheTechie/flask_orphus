@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 from typing import Literal
-
+from flask import Blueprint
 import click
 import inflection
 from flask import request
@@ -28,17 +28,12 @@ load_dotenv()
 
 
 class FlaskOrphus:
-    def __init__(self, app=None, routing_mode: routing_modes = "pages"):
+    def __init__(self, app=None, routing_mode: routing_modes = "pages", blueprints: list[Blueprint] | None = None, global_functions: dict[str, callable] | None = None):
         self.routing_mode = routing_mode
         if app is not None:
             self.app = app
             app.secret_key = os.getenv("APP_SECRET_KEY")
 
-            app.add_template_global(Request.session, name="session")
-            app.add_template_global(Request.session().old, name="old")
-            app.add_template_global(Request.session().errors, name="errors")
-            app.add_template_global(String, name="String")
-            app.add_template_global(os.getenv, name="env")
             match routing_mode:
                 case "hybrid":
                     FSRouter(app)
@@ -47,6 +42,19 @@ class FlaskOrphus:
                     FSRouterAPI(app)
                 case _:
                     FSRouter(app)
+
+            if blueprints:
+                for blueprint in blueprints:
+                    app.register_blueprint(blueprint)
+
+            if global_functions:
+                for name, function in global_functions.items():
+                    app.add_template_global(function, name=name)
+                app.add_template_global(Request.session, name="session")
+                app.add_template_global(Request.session().old, name="old")
+                app.add_template_global(Request.session().errors, name="errors")
+                app.add_template_global(String, name="String")
+                app.add_template_global(os.getenv, name="env")
 
             self.init_app(self.app)
 
@@ -68,7 +76,8 @@ class FlaskOrphus:
                 app.jinja_env.loader = FileSystemLoader([
                     "components",
                     "layouts",
-                    "pages"
+                    "pages",
+                    "templates"
                 ])
 
         @app.errorhandler(ValidationError)
