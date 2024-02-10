@@ -10,6 +10,7 @@ from jinja2 import FileSystemLoader
 
 from flask_orphus.helpers import String
 from flask_orphus.helpers import ns
+from flask_orphus.core import Provider
 from flask_orphus.http import Request, Redirect
 from flask_orphus.logging import Log
 from flask_orphus.routing.content_collection import ContentNotFoundError
@@ -28,7 +29,7 @@ load_dotenv()
 
 
 class FlaskOrphus:
-    def __init__(self, app=None, routing_mode: routing_modes = "pages", blueprints: list[Blueprint] | None = None, global_functions: dict[str, callable] | None = None):
+    def __init__(self, app=None, routing_mode: routing_modes = "pages", blueprints: list[Blueprint] | None = None, global_functions: dict[str, callable] | None = None, providers: list[callable] | None = None):
         self.routing_mode = routing_mode
         if app is not None:
             self.app = app
@@ -55,6 +56,12 @@ class FlaskOrphus:
                 app.add_template_global(Request.session().errors, name="errors")
                 app.add_template_global(String, name="String")
                 app.add_template_global(os.getenv, name="env")
+
+            if providers:
+                provider = Provider()
+                for provider_entry in providers:
+                    provider.add(provider_entry)
+                provider.load()
 
             self.init_app(self.app)
 
