@@ -63,7 +63,6 @@ def micro_render(app, bang_template: Path, **context: dict[Any, Any]) -> str:
         original_css = style_result
         # TODO: fix this
 
-
     stripped_template = re.sub(r"^.*?(<template>.*?</template>).*?$", r"\1", template, flags=re.DOTALL)
     html_str: str = stripped_template.strip().lstrip("<template>").rstrip("</template>")
 
@@ -75,6 +74,7 @@ def micro_render(app, bang_template: Path, **context: dict[Any, Any]) -> str:
     with app.app_context():
         app.jinja_env.enable_async = True
         app.jinja_env.globals['_render'] = partial(micro_render, app)
+        app.__dict__['name'] = f"{bang_template}"
 
         if str(bang_template).startswith("components") or str(bang_template).startswith("layouts"):
             component_html = html_str

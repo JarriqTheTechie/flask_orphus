@@ -7,8 +7,50 @@ from pathlib import Path
 from pydoc import locate
 from typing import Any
 
+from werkzeug.routing import BaseConverter
+
+try:
+    from config.database import RouteModelBinding
+except ImportError:
+    pass
 from flask_orphus.helpers import String
 from flask_orphus.routing.micro import micro_render
+
+
+class ModelConverter(BaseConverter):
+    def __init__(self, url_map, model):
+        super().__init__(url_map)
+        self.model = model
+
+    def to_python(self, value):
+        model = RouteModelBinding.get(self.model)
+        primary_key = model.__dict__.get("__primary_key__", "id")
+        key = model.__dict__.get(
+            "get_route_key_name",
+            model.__dict__.get("__route_model_binding_key__")
+        )
+
+        if key:
+            if callable(key):
+                key = getattr(model(), "get_route_key_name")()
+                if model.__dict__.get("resolve_route_binding"):
+                    return getattr(model(), "resolve_route_binding")(key, value)
+            return model.where(key, value).first()
+        else:
+            return model.find_or_404(value)
+        raise Exception(f"Model {self.model} not found in route model binding configuration.")
+
+    def to_url(self, value):
+        try:
+            if "get_route_key_name" in value.__class__.__dict__.keys():
+                key = value.get_route_key_name()
+            else:
+                key = value.__route_model_binding_key__
+        except AttributeError as e:
+            if "QueryBuilder" in str(e):
+                raise TypeError(
+                    f"{value} should be a [Model] and not a [QueryBuilder]. [QueryBuilder] has no attribute [__route_model_binding_key__]. ")
+        return str(value[key])
 
 
 def to_class(path: str) -> Any:
@@ -32,6 +74,17 @@ def path_processor(path):
     ["/" if path.rstrip(f"{path.split('.')[-1]}").rstrip("/") == "" else path.rstrip(
         f"{path.split('.')[-1]}").rstrip("/")][0].rstrip(".").replace("/.", "/")
 
+    try:
+        from config.database import RouteModelBinding
+        pattern = r'<(.*?)>'
+        matches = re.findall(pattern, path)
+        for match in matches:
+            print(match)
+            if match in RouteModelBinding.keys():
+                path = path.replace(f"<{match}>", f"<model({match}):{match.lower()}>")
+    except ImportError:
+        pass
+    # print(path)
     return path
 
 
@@ -68,6 +121,12 @@ class FSRouter:
             self.init_app(self.app)
 
     def init_app(self, app):
+        try:
+            from config.database import RouteModelBinding
+            app.url_map.converters['model'] = ModelConverter
+        except ImportError:
+            pass
+
         app.jinja_env.enable_async = True
 
         for route in FSRouter().routes_export():

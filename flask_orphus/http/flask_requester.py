@@ -281,24 +281,33 @@ class Request(object, metaclass=FastInstantiateMeta):
     @classmethod
     def store(cls, key: str, prefix: str = "", suffix: str = "", prefix_separator: str = "", suffix_separator: str = "",
               keep_name: bool = False) -> str:
+        upload_dir = os.getenv("UPLOAD_DIR")
+        if not upload_dir:
+            upload_dir = "UPLOADS"
+        print(upload_dir)
         extension: str = os.path.splitext(cls.file(key).__dict__['filename'])[1][1:].strip()
         if keep_name is True:
             with cls.file(key).__dict__['stream'] as f:
                 file_guts: bytes = f.read()
-            with open(r'UPLOADS\\' + f'{prefix}{prefix_separator}{cls.file(key).__dict__["filename"]}', 'wb') as output:
+            with open(f"{upload_dir}" + r'\\' + f'{prefix}{prefix_separator}{cls.file(key).__dict__["filename"]}',
+                      'wb') as output:
                 output.write(file_guts)
             return cls.file(key).__dict__['filename']
         cls.file(key).__dict__[
             'filename'] = f"{prefix}{prefix_separator}{str(uuid.uuid4())}{suffix_separator}{suffix}" + "." + extension
         with cls.file(key).__dict__['stream'] as f:
             file_guts: bytes = f.read()
-        with open(r'UPLOADS\\' + f'{cls.file(key).__dict__["filename"]}', 'wb') as output:
+        with open(f"{upload_dir}" + r'\\' + f'{cls.file(key).__dict__["filename"]}', 'wb') as output:
             output.write(file_guts)
         return cls.file(key).__dict__['filename']
 
     @classmethod
     def upload_multiple(cls, key: str, prefix: str = "", suffix: str = "", prefix_separator: str = "",
                         suffix_separator: str = "", keep_name: bool = False):
+        upload_dir = os.getenv("UPLOAD_DIR")
+        if not upload_dir:
+            upload_dir = "UPLOADS"
+
         saved_file_path_list: list = []
         files: list = request.files.getlist(f'{key}')
         for file in files:
@@ -307,8 +316,9 @@ class Request(object, metaclass=FastInstantiateMeta):
                 file.filename = str(uuid.uuid4()) + "." + extension
             with file.stream as f:
                 file_guts: bytes = f.read()
-            with open(r'UPLOADS\\' + f'{prefix}{prefix_separator}{str(file.filename).rstrip(extension).rstrip(".")}{suffix_separator}{suffix}.{extension}',
-                      'wb') as output:
+            with open(
+                    f"{upload_dir}" + r'\\' + f'{prefix}{prefix_separator}{str(file.filename).rstrip(extension).rstrip(".")}{suffix_separator}{suffix}.{extension}',
+                    'wb') as output:
                 output.write(file_guts)
                 file.filename = f'{prefix}{prefix_separator}{str(file.filename).rstrip(extension).rstrip(".")}{suffix_separator}{suffix}.{extension}'
             saved_file_path_list.append(file.filename)

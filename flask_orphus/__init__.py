@@ -1,23 +1,26 @@
 import os
 import subprocess
-import shutil
+import time
+from functools import partial
 from typing import Literal
-from flask import Blueprint
+
 import click
 import inflection
+from dotenv import load_dotenv
+from flask import Blueprint
 from flask import request
 from jinja2 import FileSystemLoader
 
-from flask_orphus.helpers import String
-from flask_orphus.helpers import ns
-from flask_orphus.core import Provider
-from flask_orphus.http import Request, Redirect
-from flask_orphus.logging import Log
+from flask_orphus.core import Provider as oprovider, Provider
+from flask_orphus.helpers import String as ostr, String
+from flask_orphus.helpers import ns as ons, ns
+from flask_orphus.http import Request as orequest, Redirect as oredirect, Request, Redirect
+from flask_orphus.logging import Log as olog, Log
 from flask_orphus.routing.content_collection import ContentNotFoundError
 from flask_orphus.routing.fs_router import FSRouter
 from flask_orphus.routing.fs_router_api import FSRouterAPI
+from flask_orphus.routing.micro import micro_render
 from flask_orphus.validation import ValidationError
-from dotenv import load_dotenv
 
 routing_modes = Literal[
     "pages",
@@ -29,7 +32,12 @@ load_dotenv()
 
 
 class FlaskOrphus:
-    def __init__(self, app=None, routing_mode: routing_modes = "pages", blueprints: list[Blueprint] | None = None, global_functions: dict[str, callable] | None = None, providers: list[callable] | None = None):
+    def __init__(
+            self, app=None, routing_mode: routing_modes = "pages",
+            blueprints: list[Blueprint] | None = None,
+            global_functions: dict[str, callable] | None = None,
+            providers: list[callable] | None = None,
+    ):
         self.routing_mode = routing_mode
         if app is not None:
             self.app = app
@@ -45,8 +53,16 @@ class FlaskOrphus:
                     FSRouter(app)
 
             if blueprints:
+                start_time_ = time.time()
                 for blueprint in blueprints:
+                    start_time = time.time()
                     app.register_blueprint(blueprint)
+                    end_time = time.time()
+                    execution_time = end_time - start_time
+                    # print(f"Loading Blueprint {blueprint.name} took {execution_time} seconds.")
+                end_time = time.time()
+                execution_time = end_time - start_time_
+                # print(f"Loading Blueprints took {execution_time} seconds.")
 
             if global_functions:
                 for name, function in global_functions.items():
@@ -56,6 +72,9 @@ class FlaskOrphus:
                 app.add_template_global(Request.session().errors, name="errors")
                 app.add_template_global(String, name="String")
                 app.add_template_global(os.getenv, name="env")
+                app.add_template_global(
+                    partial(micro_render, app), name="_render"
+                )
 
             if providers:
                 provider = Provider()
